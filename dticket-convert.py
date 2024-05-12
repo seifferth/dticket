@@ -135,8 +135,7 @@ if __name__ == "__main__":
             else: outfile = open(os.path.expanduser(v), 'wb')
         elif k in ['-f', '--format']:
             if v not in ['binary', 'png', 'pdf', 'pkpass', 'auto']:
-                print(f'Invalid input format: {v}', file=sys.stderr)
-                exit(1)
+                exit(f'Invalid input format: {v}')
             input_format = v
         elif k == '--dump-binary':
             dump_binary = True
@@ -145,8 +144,7 @@ if __name__ == "__main__":
         elif k == '--dump-data':
             dump_data = True
     if len(args) == 0: args = ['-']
-    if len(args) != 1:
-        print(_cli_help, file=sys.stderr); exit(1)
+    if len(args) != 1: exit(_cli_help)
 
     if args[0] == '-':
         input_data = sys.stdin.buffer.read()
