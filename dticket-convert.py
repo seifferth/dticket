@@ -4,12 +4,20 @@ import sys, os
 from getopt import gnu_getopt as getopt
 
 _cli_help = """
-Usage: dticket-convert [-h|-o FILE] FILE
+Usage: dticket-convert [OPTION]... FILE
 
-Further Options:
-    --dump-binary
-    --dump-signature
-    --dump-data
+Options:
+    -o FILE,                Write output to FILE instead of stdout.
+        --output FILE
+    -f FORMAT,              Specify which input format to process. Valid
+        --format FORMAT     values are 'binary', 'png', 'pdf', 'pkpass',
+                            and 'auto' where 'auto' uses some heuristics
+                            to detect the input format automatically.
+                            Default: auto.
+    --dump-binary           Write the binary contents to stdout.
+    --dump-signature        Write the signature header to stdout.
+    --dump-data             Write the uncompressed data to stdout.
+    -h, --help              Print this help message and exit.
 """.lstrip()
 
 _css_style = """
@@ -61,19 +69,36 @@ def write_pdf(aztec_code: bytes, aztec_info: dict, outfile) -> None:
     ))
     newdoc.write_pdf(outfile)
 
-def extract_aztec_code(input_pdf) -> bytes:
+def pdf_extract_aztec_code(input_pdf: bytes) -> bytes:
     import fitz
-    d = fitz.open(input_pdf)
+    d = fitz.open('pdf', input_pdf)
     pno, imgno = 0, -1      # This is where the aztec code is usually located
                             # in the pdf: The last image on the first page.
     aztec_code = d.extract_image(d.get_page_images(pno)[imgno][0])['image']
     return aztec_code
 
-def decode_aztec_code(image: bytes) -> tuple[bytes,bytes,bytes]:
-    import zxingcpp
+def encode_aztec_code(binary: bytes) -> bytes:
+    from zxingcpp import write_barcode, Aztec
     from PIL import Image
     from io import BytesIO
-    binary = zxingcpp.read_barcodes(Image.open(BytesIO(aztec_code)))[0].bytes
+    barcode = Image.fromarray(write_barcode(Aztec,
+        binary.decode('ISO-8859-1'), width=256, height=256))
+    png = BytesIO(); barcode.save(png, format='png'); png.seek(0)
+    return png.read()
+
+def pkpass_extract_aztec_code(input_pkpass: bytes) -> bytes:
+    from zipfile import ZipFile
+    from io import BytesIO
+    import json
+    with ZipFile(BytesIO(input_pkpass)).open('pass.json') as f:
+        data = json.loads(f.read())['barcodes'][0]['message']
+    return encode_aztec_code(data.encode('ISO-8859-1'))
+
+def decode_aztec_code(image: bytes) -> tuple[bytes,bytes,bytes]:
+    from zxingcpp import read_barcodes
+    from PIL import Image
+    from io import BytesIO
+    binary = read_barcodes(Image.open(BytesIO(aztec_code)))[0].bytes
     # See <https://stackoverflow.com/questions/34423303> for what follows
     import zlib
     signature = binary[:68]             # Apparently a DSA signature
@@ -101,15 +126,20 @@ def interpret_aztec_data(signature: bytes, data: bytes) -> dict:
     return d
 
 if __name__ == "__main__":
-    opts, args = getopt(sys.argv[1:], 'ho:', ['help', 'output=',
+    opts, args = getopt(sys.argv[1:], 'ho:f:', ['help', 'output=', 'format=',
                         'dump-signature', 'dump-data', 'dump-binary'])
-    outfile = sys.stdout.buffer
+    outfile = sys.stdout.buffer; input_format = 'auto'
     dump_binary, dump_signature, dump_data = False, False, False
     for k, v in opts:
         if k in ['-h', '--help']:
             print(_cli_help); exit(0)
         elif k in ['-o', '--output']:
             outfile = open(os.path.expanduser(v), 'wb')
+        elif k in ['-f', '--format']:
+            if v not in ['binary', 'png', 'pdf', 'pkpass', 'auto']:
+                print(f'Invalid input format: {v}', file=sys.stderr)
+                exit(1)
+            input_format = v
         elif k == '--dump-binary':
             dump_binary = True
         elif k == '--dump-signature':
@@ -120,7 +150,21 @@ if __name__ == "__main__":
         print(_cli_help, file=sys.stderr); exit(1)
 
     with open(args[0], 'rb') as f:
-        aztec_code = extract_aztec_code(f)
+        input_data = f.read()
+    if input_format == 'auto':
+        if     input_data.startswith(b'#UT01'):     input_format = 'binary'
+        elif   input_data.startswith(b'\x89PNG'):   input_format = 'png'
+        elif   input_data.startswith(b'%PDF-'):     input_format = 'pdf'
+        elif   input_data.startswith(b'PK'):        input_format = 'pkpass'
+        else:  exit('Failed to determine input format automatically')
+    if input_format == 'binary':
+        aztec_code = encode_aztec_code(input_data)
+    elif input_format == 'png':
+        aztec_code = input_data
+    elif input_format == 'pdf':
+        aztec_code = pdf_extract_aztec_code(input_data)
+    elif input_format == 'pkpass':
+        aztec_code = pkpass_extract_aztec_code(input_data)
     binary, signature, data = decode_aztec_code(aztec_code)
     if dump_binary or dump_signature or dump_data:
         if dump_signature: sys.stdout.buffer.write(signature)
