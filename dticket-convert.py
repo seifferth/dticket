@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import sys, os
+from io import BytesIO
+from PIL import Image
 from getopt import gnu_getopt as getopt
 
 _cli_help = """
@@ -79,8 +81,6 @@ def pdf_extract_aztec_code(input_pdf: bytes) -> bytes:
 
 def encode_aztec_code(binary: bytes) -> bytes:
     from zxingcpp import write_barcode, Aztec
-    from PIL import Image
-    from io import BytesIO
     barcode = Image.fromarray(write_barcode(Aztec,
         binary.decode('ISO-8859-1'), width=256, height=256))
     png = BytesIO(); barcode.save(png, format='png'); png.seek(0)
@@ -88,7 +88,6 @@ def encode_aztec_code(binary: bytes) -> bytes:
 
 def pkpass_extract_aztec_code(input_pkpass: bytes) -> bytes:
     from zipfile import ZipFile
-    from io import BytesIO
     import json
     with ZipFile(BytesIO(input_pkpass)).open('pass.json') as f:
         data = json.loads(f.read())['barcodes'][0]['message']
@@ -96,8 +95,6 @@ def pkpass_extract_aztec_code(input_pkpass: bytes) -> bytes:
 
 def decode_aztec_code(image: bytes) -> tuple[bytes,bytes,bytes]:
     from zxingcpp import read_barcodes
-    from PIL import Image
-    from io import BytesIO
     binary = read_barcodes(Image.open(BytesIO(aztec_code)))[0].bytes
     # See <https://stackoverflow.com/questions/34423303> for what follows
     import zlib
