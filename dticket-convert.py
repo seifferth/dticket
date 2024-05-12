@@ -154,7 +154,7 @@ if __name__ == "__main__":
         with open(args[0], 'rb') as f:
             input_data = f.read()
     if input_format == 'auto':
-        if     input_data.startswith(b'#UT01'):     input_format = 'binary'
+        if     input_data.startswith(b'#UT'):       input_format = 'binary'
         elif   input_data.startswith(b'\x89PNG'):   input_format = 'png'
         elif   input_data.startswith(b'%PDF-'):     input_format = 'pdf'
         elif   input_data.startswith(b'PK'):        input_format = 'pkpass'
