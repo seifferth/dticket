@@ -164,9 +164,9 @@ if __name__ == "__main__":
         aztec_code = pkpass_extract_aztec_code(input_data)
     binary, signature, data = decode_aztec_code(aztec_code)
     if dump_binary or dump_signature or dump_data:
-        if dump_signature: sys.stdout.buffer.write(signature)
-        if dump_data: sys.stdout.buffer.write(data)
-        if dump_binary: sys.stdout.buffer.write(binary)
+        if dump_signature:  outfile.write(signature)
+        if dump_data:       outfile.write(data)
+        if dump_binary:     outfile.write(binary)
         exit(0)
     aztec_info = interpret_aztec_data(signature, data)
     write_pdf(aztec_code, aztec_info, outfile)
