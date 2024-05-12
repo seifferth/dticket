@@ -108,10 +108,7 @@ def interpret_aztec_data(signature: bytes, data: bytes) -> dict:
     # which I did not yet incorporate here.
     import textwrap
     def display_binary(binary: bytes) -> str:
-        cleaned = str(binary)[2:-1] \
-                        .replace('\n', '↵') \
-                        .replace('\t', '›') \
-                        .replace(' ', '·')
+        cleaned = str(binary)[2:-1].replace(' ', '·')
         return textwrap.fill(cleaned, width=40, break_on_hyphens=False)
     d = dict()
     # Ticket validity
