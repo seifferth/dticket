@@ -94,8 +94,8 @@ def pkpass_extract_aztec_code(input_pkpass: bytes) -> bytes:
     return encode_aztec_code(data.encode('ISO-8859-1'))
 
 def decode_aztec_code(image: bytes) -> tuple[bytes,bytes,bytes]:
-    from zxingcpp import read_barcodes
-    binary = read_barcodes(Image.open(BytesIO(aztec_code)))[0].bytes
+    from zxingcpp import read_barcode
+    binary = read_barcode(Image.open(BytesIO(aztec_code))).bytes
     # See <https://stackoverflow.com/questions/34423303> for what follows
     import zlib
     signature = binary[:68]             # Apparently a DSA signature
