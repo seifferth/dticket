@@ -122,8 +122,7 @@ def interpret_aztec_data(signature: bytes, data: bytes) -> dict:
 if __name__ == "__main__":
     opts, args = getopt(sys.argv[1:], 'ho:f:', ['help', 'output=', 'format=',
                         'dump-signature', 'dump-data', 'dump-binary'])
-    outfile = sys.stdout.buffer; input_format = 'auto'
-    dump_binary, dump_signature, dump_data = False, False, False
+    outfile = sys.stdout.buffer; input_format = 'auto'; dump = None
     for k, v in opts:
         if k in ['-h', '--help']:
             print(_cli_help); exit(0)
@@ -135,11 +134,17 @@ if __name__ == "__main__":
                 exit(f'Invalid input format: {v}')
             input_format = v
         elif k == '--dump-binary':
-            dump_binary = True
+            if dump and dump != 'binary':
+                exit('The dump commands are mutually exclusive')
+            dump = 'binary'
         elif k == '--dump-signature':
-            dump_signature = True
+            if dump and dump != 'signature':
+                exit('The dump commands are mutually exclusive')
+            dump = 'signature'
         elif k == '--dump-data':
-            dump_data = True
+            if dump and dump != 'data':
+                exit('The dump commands are mutually exclusive')
+            dump = 'data'
     if len(args) == 0: args = ['-']
     if len(args) != 1: exit(_cli_help)
 
@@ -163,10 +168,10 @@ if __name__ == "__main__":
     elif input_format == 'pkpass':
         aztec_code = pkpass_extract_aztec_code(input_data)
     binary, signature, data = decode_aztec_code(aztec_code)
-    if dump_binary or dump_signature or dump_data:
-        if dump_signature:  outfile.write(signature)
-        if dump_data:       outfile.write(data)
-        if dump_binary:     outfile.write(binary)
-        exit(0)
-    aztec_info = interpret_aztec_data(signature, data)
-    write_pdf(aztec_code, aztec_info, outfile)
+    if dump:
+        if dump == 'binary':        outfile.write(binary)
+        elif dump == 'signature':   outfile.write(signature)
+        elif dump == 'data':        outfile.write(data)
+    else:
+        aztec_info = interpret_aztec_data(signature, data)
+        write_pdf(aztec_code, aztec_info, outfile)
