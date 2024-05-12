@@ -6,7 +6,7 @@ from PIL import Image
 from getopt import gnu_getopt as getopt
 
 _cli_help = """
-Usage: dticket-convert [OPTION]... FILE
+Usage: dticket-convert [OPTION]... [INPUT-FILE]
 
 Options:
     -o FILE,                Write output to FILE instead of stdout.
@@ -131,7 +131,8 @@ if __name__ == "__main__":
         if k in ['-h', '--help']:
             print(_cli_help); exit(0)
         elif k in ['-o', '--output']:
-            outfile = open(os.path.expanduser(v), 'wb')
+            if v == '-': outfile = sys.stdout.buffer
+            else: outfile = open(os.path.expanduser(v), 'wb')
         elif k in ['-f', '--format']:
             if v not in ['binary', 'png', 'pdf', 'pkpass', 'auto']:
                 print(f'Invalid input format: {v}', file=sys.stderr)
@@ -143,11 +144,15 @@ if __name__ == "__main__":
             dump_signature = True
         elif k == '--dump-data':
             dump_data = True
+    if len(args) == 0: args = ['-']
     if len(args) != 1:
         print(_cli_help, file=sys.stderr); exit(1)
 
-    with open(args[0], 'rb') as f:
-        input_data = f.read()
+    if args[0] == '-':
+        input_data = sys.stdin.buffer.read()
+    else:
+        with open(args[0], 'rb') as f:
+            input_data = f.read()
     if input_format == 'auto':
         if     input_data.startswith(b'#UT01'):     input_format = 'binary'
         elif   input_data.startswith(b'\x89PNG'):   input_format = 'png'
