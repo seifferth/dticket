@@ -91,8 +91,11 @@ def pkpass_extract_aztec_code(input_pkpass: bytes) -> bytes:
     import json
     with ZipFile(BytesIO(input_pkpass)).open('pass.json') as f:
         d = json.loads(f.read())['barcodes'][0]
+        barcode = d['format']
         message = d['message']
         charset = d['messageEncoding']
+    if barcode not in ['PKBarcodeFormatAztec']:
+        raise Exception(f'Unexpected pkpass barcode format: {barcode}')
     if charset not in ['ISO-8859-1']:
         raise Exception(f'Unexpected pkpass message encoding: {charset}')
     return encode_aztec_code(message.encode(charset))
