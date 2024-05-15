@@ -16,5 +16,6 @@ elif ! test "$#" = 2 || ! echo "$1" |
 fi
 
 printf "%s" "Storing ticket as '~/tickets/deutschlandticket-$1.pdf' ..." >&2
+mkdir -p ~/tickets
 dticket-convert "$2" -o ~/tickets/deutschlandticket-"$1".pdf
 printf "\b\b\b   \b\b\b\b\n" >&2
