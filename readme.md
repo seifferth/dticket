@@ -19,7 +19,7 @@ of forms which seem to be based on the different ticketing systems of
 the various public transport networks.
 
 The most sensible implementation for digital ticketing seems to be the
-on based on the UIC standard developed by the European Union Agency
+one based on the UIC standard developed by the European Union Agency
 for Railways (ERA). According to the UIC standard, a railway ticket is
 a sequence of bytes that follows a certain format (which includes a DSA
 signature by the issuer) and that is supposed to be presented as a barcode
