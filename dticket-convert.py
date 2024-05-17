@@ -17,8 +17,8 @@ Options:
                             to detect the input format automatically.
                             Default: auto.
     --dump-binary           Write the binary contents to stdout.
-    --dump-signature        Write the signature header to stdout.
-    --dump-data             Write the uncompressed data to stdout.
+    --dump-seal             Write the uncompressed header to stdout.
+    --dump-data             Write the decompressed data to stdout.
     -h, --help              Print this help message and exit.
 """.lstrip()
 
@@ -58,7 +58,7 @@ _new_html = """
 </div>
 
 <div class="right binary">
-<pre>{signature}</pre>
+<pre>{seal}</pre>
 <pre>{full_data}</pre>
 </div>
 </p>
@@ -105,11 +105,11 @@ def decode_aztec_code(image: bytes) -> tuple[bytes,bytes,bytes]:
     binary = read_barcode(Image.open(BytesIO(aztec_code))).bytes
     # See <https://stackoverflow.com/questions/34423303> for what follows
     import zlib
-    signature = binary[:68]             # Apparently a DSA signature
+    seal = binary[:68]          # Contains, among others, a DSA signature
     data = zlib.decompress(binary[68:])
-    return binary, signature, data
+    return binary, seal, data
 
-def interpret_aztec_data(signature: bytes, data: bytes) -> dict:
+def interpret_aztec_data(seal: bytes, data: bytes) -> dict:
     # For more info also see <https://github.com/pbock/ticket-parser> and
     # <https://github.com/rumpeltux/onlineticket/blob/master/onlineticket.py>
     # which I did not yet incorporate here.
@@ -122,13 +122,13 @@ def interpret_aztec_data(signature: bytes, data: bytes) -> dict:
     i = data.find(b'Gueltig ')
     d['validity'] = 'Gültig '+data[i+8:i+37].decode('ascii')
     # Full data decoded using an 8-bit decoding
-    d['signature'] = display_binary(signature)
+    d['seal'] = display_binary(seal)
     d['full_data'] = display_binary(data)
     return d
 
 if __name__ == "__main__":
     opts, args = getopt(sys.argv[1:], 'ho:f:', ['help', 'output=', 'format=',
-                        'dump-signature', 'dump-data', 'dump-binary'])
+                        'dump-seal', 'dump-data', 'dump-binary'])
     outfile = sys.stdout.buffer; input_format = 'auto'; dump = None
     for k, v in opts:
         if k in ['-h', '--help']:
@@ -144,10 +144,10 @@ if __name__ == "__main__":
             if dump and dump != 'binary':
                 exit('The dump commands are mutually exclusive')
             dump = 'binary'
-        elif k == '--dump-signature':
-            if dump and dump != 'signature':
+        elif k == '--dump-seal':
+            if dump and dump != 'seal':
                 exit('The dump commands are mutually exclusive')
-            dump = 'signature'
+            dump = 'seal'
         elif k == '--dump-data':
             if dump and dump != 'data':
                 exit('The dump commands are mutually exclusive')
@@ -174,11 +174,11 @@ if __name__ == "__main__":
         aztec_code = pdf_extract_aztec_code(input_data)
     elif input_format == 'pkpass':
         aztec_code = pkpass_extract_aztec_code(input_data)
-    binary, signature, data = decode_aztec_code(aztec_code)
+    binary, seal, data = decode_aztec_code(aztec_code)
     if dump:
         if dump == 'binary':        outfile.write(binary)
-        elif dump == 'signature':   outfile.write(signature)
+        elif dump == 'seal':        outfile.write(seal)
         elif dump == 'data':        outfile.write(data)
     else:
-        aztec_info = interpret_aztec_data(signature, data)
+        aztec_info = interpret_aztec_data(seal, data)
         write_pdf(aztec_code, aztec_info, outfile)
