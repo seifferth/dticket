@@ -15,7 +15,12 @@ elif ! test "$#" = 2 || ! echo "$1" |
     exit 1
 fi
 
-printf "%s" "Storing ticket as '~/tickets/deutschlandticket-$1.pdf' ..." >&2
 mkdir -p ~/tickets
+if test "$(head -c4 "$2")" = "%PDF"; then
+    printf "%s" "Storing original pdf as '~/tickets/abobestätigung-$1.pdf'"
+    cp "$2" ~/tickets/abobestätigung-"$1".pdf
+    printf "\n"
+fi
+printf "%s" "Storing ticket as '~/tickets/deutschlandticket-$1.pdf' ..." >&2
 dticket-convert "$2" -o ~/tickets/deutschlandticket-"$1".pdf
 printf "\b\b\b   \b\b\b\b\n" >&2
