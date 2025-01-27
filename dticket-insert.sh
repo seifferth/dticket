@@ -32,14 +32,13 @@ elif ! test "$#" = 2 || ! echo "$1" |
 fi
 
 mkdir -p ~/tickets
-if test "$(head -c4 "$2")" = "%PDF"; then
-    printf "%s" "Storing original pdf as '~/tickets/abobestätigung-$1.pdf'"
-    cp "$2" ~/tickets/abobestätigung-"$1".pdf
-    printf "\n"
-fi
 if printf "%s" "$2" | grep -q '^https://'; then
     tempfile="$(mktemp)"
     get_like_firefox "$2" "$tempfile"
+elif test "$(head -c4 "$2")" = "%PDF"; then
+    printf "%s" "Storing original pdf as '~/tickets/abobestätigung-$1.pdf'"
+    cp "$2" ~/tickets/abobestätigung-"$1".pdf
+    printf "\n"
 fi
 printf "%s" "Storing ticket as '~/tickets/deutschlandticket-$1.pdf' ..." >&2
 if test "$tempfile"; then
